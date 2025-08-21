@@ -24,6 +24,10 @@ This repository contains implementations of four fundamental quantum computing a
 - **Quantum Solution**: Use entanglement + classical communication
 - **Key Quantum Phenomena**: Entanglement, Bell measurement, no-cloning, classical communication
 - **How it works**: Alice performs Bell measurement on unknown qubit + Bell pair qubit, sends classical bits to Bob, Bob applies conditional operations
+- **What you see now**:
+  - A text-based circuit diagram printed by `visualize_circuit()`
+  - A statevector-based demonstration that enumerates all Alice outcomes and shows Bob's reduced state
+  - An `example_fidelity()` run that teleports an arbitrary single-qubit state and reports per-outcome and minimum fidelities (≈ 1.0)
 
 ### 4. **CHSH Game (Bell Inequality Test)** (`chsh_game.py`)
 - **Purpose**: Demonstrate quantum entanglement by violating Bell's inequality

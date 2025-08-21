@@ -1,205 +1,107 @@
 from qiskit import QuantumCircuit
-from qiskit_aer import Aer
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Statevector, partial_trace, Operator, state_fidelity
 import numpy as np
 
-def quantum_teleportation_protocol(qubit_state):
+def quantum_teleportation():
     """
-    Quantum Teleportation Protocol Implementation using Qiskit
-    
-    This protocol allows Alice to teleport an unknown quantum state to Bob
-    using a shared Bell pair and classical communication.
-    
-    Protocol:
-    1. Alice and Bob share a Bell pair |Φ⁺⟩
-    2. Alice has an unknown qubit state |ψ⟩
-    3. Alice performs Bell measurement on her qubit and Bell pair qubit
-    4. Alice sends 2 classical bits to Bob
-    5. Bob applies conditional operations to recover |ψ⟩
+    Simulates quantum teleportation of a qubit using entanglement.
     """
-    
-    # Create device with 3 qubits:
-    # qubit 0: Alice's unknown qubit |ψ⟩
-    # qubit 1: Alice's Bell pair qubit
-    # qubit 2: Bob's Bell pair qubit
-    qc = QuantumCircuit(3, 3)
-    
-    # Step 1: Prepare unknown qubit state |ψ⟩ on qubit 0
-    if qubit_state == "|0⟩":
-        # Already in |0⟩ state
-        pass
-    elif qubit_state == "|1⟩":
-        qc.x(0)
-    elif qubit_state == "|+⟩":
-        qc.h(0)
-    elif qubit_state == "|-⟩":
-        qc.h(0)
-        qc.z(0)
-    elif qubit_state == "|i⟩":
-        qc.h(0)
-        qc.s(0)
-    
-    # Step 2: Create Bell pair on qubits 1 and 2
+    print("--- Running Quantum Teleportation ---")
+
+    # Step 1: Initialize 3 qubits (q0 = state to teleport, q1 = Alice's entanglement, q2 = Bob's entanglement)
+    qc = QuantumCircuit(3)
+
+    # Step 2: Prepare the state to teleport (Alice's qubit)
+    qc.h(0)
+    qc.t(0)
+ 
+    # Step 3: Create entangled Bell pair between q1 (Alice) and q2 (Bob)
     qc.h(1)
     qc.cx(1, 2)
-    
-    # Step 3: Perform Bell measurement on qubits 0 and 1
+
+    # Step 4: Bell measurement on Alice's qubits
     qc.cx(0, 1)
     qc.h(0)
-    
-    # Step 4: Apply conditional operations on qubit 2 based on measurement
-    # This simulates the classical communication and conditional operations
-    # In real teleportation, these would be applied after receiving classical bits
-    
-    # For demonstration, we'll apply the operations that would be needed
-    # based on the Bell measurement outcome
-    # (In practice, this would be done after classical communication)
-    
-    # Measure all qubits
-    qc.measure([0, 1, 2], [0, 1, 2])
-    
-    return qc
 
-def run_teleportation_examples():
-    """Run examples of quantum teleportation with different input states"""
-    
-    print("=== Quantum Teleportation Examples ===\n")
-    
-    input_states = ["|0⟩", "|1⟩", "|+⟩", "|-⟩", "|i⟩"]
-    
-    for state in input_states:
-        print(f"Teleporting state: {state}")
-        
-        # Create and run the circuit
-        qc = quantum_teleportation_protocol(state)
-        
-        # Execute on simulator
-        backend = Aer.get_backend('qasm_simulator')
-        job = backend.run(qc, shots=1000)
-        result = job.result()
-        counts = result.get_counts()
-        
-        # Get most common result
-        most_common_result = max(counts, key=counts.get)
-        
-        print(f"  Circuit output: {most_common_result}")
-        print(f"  Counts: {counts}")
-        print(f"  Alice's qubit (bit 0): {most_common_result[0]}")
-        print(f"  Bell measurement (bit 1): {most_common_result[1]}")
-        print(f"  Bob's qubit (bit 2): {most_common_result[2]}")
-        print()
+    # Step 5: Get the full statevector
+    state = Statevector.from_instruction(qc)
 
-def explain_quantum_teleportation():
-    """Explain the Quantum Teleportation protocol"""
-    
-    print("=== Quantum Teleportation Protocol Explanation ===\n")
-    
-    print("Problem:")
-    print("Alice wants to send an unknown quantum state |ψ⟩ to Bob")
-    print("without physically transporting the qubit")
-    print()
-    
-    print("Classical Solution:")
-    print("- Impossible! Cannot copy unknown quantum states (no-cloning theorem)")
-    print("- Measurement destroys quantum information")
-    print()
-    
-    print("Quantum Solution:")
-    print("- Use entanglement and classical communication")
-    print("- Destroys original state but creates perfect copy elsewhere")
-    print()
-    
-    print("Protocol Steps:")
-    print("1. Alice and Bob share Bell pair |Φ⁺⟩")
-    print("2. Alice has unknown qubit |ψ⟩")
-    print("3. Alice performs Bell measurement on |ψ⟩ and her Bell qubit")
-    print("4. Alice sends 2 classical bits to Bob")
-    print("5. Bob applies conditional operations to recover |ψ⟩")
-    print()
-    
-    print("Key Quantum Phenomena:")
-    print("- Entanglement: Bell pair enables non-local correlations")
-    print("- Measurement: Bell measurement entangles Alice's qubits")
-    print("- No-cloning: Original state is destroyed during teleportation")
-    print("- Classical communication: Required to complete teleportation")
+    # Define correction operators (leftmost label targets highest-index qubit)
+    X2 = Operator.from_label('XII')  # X on q2
+    Z2 = Operator.from_label('ZII')  # Z on q2
 
-def demonstrate_bell_measurement():
-    """Demonstrate Bell measurement outcomes"""
-    
-    print("=== Bell Measurement Demonstration ===\n")
-    
-    qc = QuantumCircuit(2, 2)
-    
-    # Create Bell state
-    qc.h(0)
-    qc.cx(0, 1)
-    
-    # Perform Bell measurement
-    qc.cx(0, 1)
-    qc.h(0)
-    
-    # Measure
-    qc.measure([0, 1], [0, 1])
-    
-    # Execute on simulator
-    backend = Aer.get_backend('qasm_simulator')
-    job = backend.run(qc, shots=1000)
-    result = job.result()
-    counts = result.get_counts()
-    
-    print("Bell measurement on |Φ⁺⟩:")
-    print(f"Result: {counts}")
-    print("Expected: Mostly '11' (both qubits in |0⟩ state)")
-    print()
-    
-    print("Bell measurement outcomes:")
-    print("- '11': |Φ⁺⟩ state")
-    print("- '10': |Φ⁻⟩ state") 
-    print("- '01': |Ψ⁺⟩ state")
-    print("- '00': |Ψ⁻⟩ state")
+    print("Teleported state of Bob's qubit for all measurement outcomes:")
 
-def explain_conditional_operations():
-    """Explain the conditional operations in teleportation"""
-    
-    print("=== Conditional Operations in Teleportation ===\n")
-    
-    print("After Bell measurement, Bob applies operations based on classical bits:")
-    print()
-    print("Bell measurement outcome | Classical bits | Bob's operation")
-    print("|Φ⁺⟩ (11)              | 11             | Identity (I)")
-    print("|Φ⁻⟩ (10)              | 10             | Pauli-Z")
-    print("|Ψ⁺⟩ (01)              | 01             | Pauli-X")
-    print("|Ψ⁻⟩ (00)              | 00             | Pauli-X then Pauli-Z")
-    print()
-    
-    print("Why this works:")
-    print("- Bell measurement projects Alice's qubits into Bell basis")
-    print("- Each Bell state corresponds to different transformation of Bob's qubit")
-    print("- Classical communication tells Bob which transformation to apply")
+    # Simulate all 4 possible measurement outcomes for Alice
+    for meas_q0 in [0, 1]:
+        for meas_q1 in [0, 1]:
+            corrected_state = state.copy()
+
+            # Apply X if Alice's q1 = 1
+            if meas_q1 == 1:
+                corrected_state = corrected_state.evolve(X2)
+
+            # Apply Z if Alice's q0 = 1
+            if meas_q0 == 1:
+                corrected_state = corrected_state.evolve(Z2)
+
+            # Reduce to Bob's qubit
+            bob_state = partial_trace(corrected_state, [0, 1])
+            print(f"Alice measures q0={meas_q0}, q1={meas_q1} -> Bob's qubit state:\n{bob_state}\n")
+
+    print("-------------------------------------")
 
 def visualize_circuit():
-    """Visualize the quantum teleportation circuit"""
-    
-    print("=== Circuit Visualization ===\n")
-    
-    qc = quantum_teleportation_protocol("|+⟩")
-    print("Quantum Teleportation Circuit (teleporting |+⟩):")
-    print(qc)
-    
-    # Show circuit diagram
-    try:
-        print("\nCircuit diagram:")
-        print(qc.draw(output='text'))
-    except ImportError:
-        print("\nCircuit visualization requires qiskit[visualization]")
+    """Print a text-based diagram of the teleportation circuit."""
+    print("--- Teleportation Circuit (text diagram) ---")
+    qc = QuantumCircuit(3)
+    qc.h(0); qc.t(0)
+    qc.h(1); qc.cx(1, 2)
+    qc.cx(0, 1); qc.h(0)
+    print(qc.draw(output='text'))
+    print("-------------------------------------------")
+
+def example_fidelity():
+    """Example: teleport an arbitrary single-qubit state and report fidelity."""
+    print("--- Example: Teleport arbitrary state and compute fidelity ---")
+    # Prepare arbitrary state |psi> = Rz(phi) Ry(theta) |0>
+    theta, phi = np.pi/3, np.pi/5
+
+    # Build 1-qubit circuit for target
+    target_circ = QuantumCircuit(1)
+    target_circ.ry(theta, 0)
+    target_circ.rz(phi, 0)
+    target_state = Statevector.from_instruction(target_circ)
+
+    # Build 3-qubit teleportation circuit up to Bell-measurement
+    qc = QuantumCircuit(3)
+    qc.ry(theta, 0)
+    qc.rz(phi, 0)
+    qc.h(1); qc.cx(1, 2)
+    qc.cx(0, 1); qc.h(0)
+
+    state = Statevector.from_instruction(qc)
+    X2 = Operator.from_label('XII')
+    Z2 = Operator.from_label('ZII')
+
+    # Average fidelity over all Alice measurement outcomes (each occurs with prob 1/4)
+    fidelities = []
+    for meas_q0 in [0, 1]:
+        for meas_q1 in [0, 1]:
+            corrected = state
+            if meas_q1 == 1:
+                corrected = corrected.evolve(X2)
+            if meas_q0 == 1:
+                corrected = corrected.evolve(Z2)
+            bob_dm = partial_trace(corrected, [0, 1])
+            fid = state_fidelity(bob_dm, target_state)
+            fidelities.append(fid)
+            print(f"Outcome (q0={meas_q0}, q1={meas_q1}) fidelity: {fid:.6f}")
+
+    print(f"Minimum fidelity over outcomes: {min(fidelities):.6f}")
+    print("-------------------------------------------------------------")
 
 if __name__ == "__main__":
-    explain_quantum_teleportation()
-    print("\n" + "="*50 + "\n")
-    demonstrate_bell_measurement()
-    print("\n" + "="*50 + "\n")
-    explain_conditional_operations()
-    print("\n" + "="*50 + "\n")
     visualize_circuit()
-    print("\n" + "="*50 + "\n")
-    run_teleportation_examples()
+    quantum_teleportation()
+    example_fidelity()
