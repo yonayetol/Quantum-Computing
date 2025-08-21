@@ -1,8 +1,6 @@
 
 # # Shor’s quantum algorithm
-import math
-import gmpy2
-import time
+import math 
 
 N = int(input("Enter N: ")) 
 a = int(input("Enter a: ")) 
@@ -25,8 +23,8 @@ print(math.gcd(y-1,N), math.gcd(y+1,N))
 print("===============================================")
 
 
-for i in range(2, int(math.sqrt(N))+1):
-    if N % i == 0:
-        print(i, N // i)
+for i in range(2, 2*r):
+    print(f" {i} leads to {pow(a, i, N)}")
 
 print("===============================================") 
+ 
