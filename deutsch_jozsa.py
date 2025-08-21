@@ -1,100 +1,58 @@
 from qiskit import QuantumCircuit
-from qiskit_aer import Aer
-from qiskit.quantum_info import Statevector
-import numpy as np
+from qiskit_aer import AerSimulator
 
-def deutsch_jozsa_algorithm(oracle_type="balanced"): 
-     
-    n_qubits = 3 
-    
-    qc = QuantumCircuit(n_qubits, n_qubits-1)
-     
+def deutsch_jozsa_algorithm(oracle): 
+    n_qubits = oracle.num_qubits
+    n_input = n_qubits - 1
+
+    qc = QuantumCircuit(n_qubits, n_input)
+
+    # Step 1: Initialize output qubit to |1>
     qc.x(n_qubits-1)
-     
-    for i in range(n_qubits): qc.h(i)
-     
-    if oracle_type == "constant_zero":  pass
+    qc.h(n_qubits-1)
 
-    elif oracle_type == "constant_one": qc.cx(n_qubits-2, n_qubits-1)
+    # Step 2: Apply Hadamard to input qubits
+    for i in range(n_input):
+        qc.h(i)
 
-    elif oracle_type == "balanced": 
-        qc.cx(0, n_qubits-1)
-        qc.cx(1, n_qubits-1)
-     
-    for i in range(n_qubits-1): qc.h(i)
-    
-    for i in range(n_qubits-1): qc.measure(i, i)
-    
+    # Step 3: Apply oracle using compose
+    qc = qc.compose(oracle)
+
+    # Step 4: Apply Hadamard again to input qubits
+    for i in range(n_input):
+        qc.h(i)
+
+    # Step 5: Measure input qubits
+    for i in range(n_input):
+        qc.measure(range(n_input), range(n_input))
+
     return qc
+ 
+oracle_const_0 = QuantumCircuit(3)   
+oracle_const_1 = QuantumCircuit(3)  
+oracle_const_1.x(2)
 
-def run_deutsch_jozsa_examples(): 
-    
-    print("=== Deutsch-Jozsa Algorithm Examples ===\n")
-    
-    oracle_types = ["constant_zero", "constant_one", "balanced"]
-    
-    for oracle_type in oracle_types:
-        print(f"Testing {oracle_type.replace('_', ' ').title()} Oracle:")
-        
-        qc = deutsch_jozsa_algorithm(oracle_type)
-        
-        backend = Aer.get_backend('qasm_simulator')
-        job = backend.run(qc, shots=1000)
-        result = job.result()
-        counts = result.get_counts()
-        
-        most_common_result = max(counts, key=counts.get)
-        
-        is_constant = all(bit == '0' for bit in most_common_result) or all(bit == '1' for bit in most_common_result)
-        
-        print(f"  Circuit output: {most_common_result}")
-        print(f"  Counts: {counts}")
-        print(f"  Function is: {'CONSTANT' if is_constant else 'BALANCED'}")
-        print()
+oracle_balanced = QuantumCircuit(3)
+oracle_balanced.cx(0,2)
+oracle_balanced.cx(1,2)
 
-def explain_deutsch_jozsa(): 
-    
-    print("=== Deutsch-Jozsa Algorithm Explanation ===\n")
-    
-    print("Problem:")
-    print("Given a function f: {0,1}^n -> {0,1}, determine if it is:")
-    print("- Constant: f(x) = 0 for all x OR f(x) = 1 for all x")
-    print("- Balanced: f(x) = 0 for exactly half of inputs, f(x) = 1 for other half")
-    print()
-    
-    print("Classical Solution:")
-    print("- Requires 2^(n-1) + 1 queries in worst case")
-    print("- Must check more than half of all possible inputs")
-    print()
-    
-    print("Quantum Solution:")
-    print("- Requires only 1 query!")
-    print("- Uses quantum superposition and interference")
-    print()
-    
-    print("How it works:")
-    print("1. Initialize |0⟩^⊗n ⊗ |1⟩")
-    print("2. Apply Hadamard gates to create superposition")
-    print("3. Apply oracle (black box function)")
-    print("4. Apply Hadamard gates again")
-    print("5. Measure: all |0⟩ = constant, any |1⟩ = balanced")
-    print()
-    
-    print("Key Quantum Phenomena:")
-    print("- Superposition: All possible inputs evaluated simultaneously")
-    print("- Interference: Destructive interference cancels out balanced functions")
-    print("- Phase kickback: Oracle's effect propagates to input qubits")
+# -------------------------
+# Run Deutsch-Jozsa
+# -------------------------
+backend = AerSimulator()
+examples = {
+    "constant_zero": oracle_const_0,
+    "constant_one": oracle_const_1,
+    "balanced_xor": oracle_balanced
+}
 
-def visualize_circuit(): 
-    print("=== Circuit Visualization ===\n")
-    
-    qc = deutsch_jozsa_algorithm("balanced")
-    print("Deutsch-Jozsa Circuit (balanced oracle):")
-    print(qc) 
-     
-if __name__ == "__main__":
-    explain_deutsch_jozsa()
+for name, oracle in examples.items():
+    qc = deutsch_jozsa_algorithm(oracle)
+    result = backend.run(qc, shots=1000).result()
+    counts = result.get_counts()
+    most_common = max(counts, key=counts.get)
+    function_type = "CONSTANT" if most_common == "00" else "BALANCED"
+    print(f"{name}: measured {most_common}, classified as {function_type}")
+    print("Circuit:")
+    print(qc.draw(output='text'))
     print("\n" + "="*50 + "\n")
-    visualize_circuit()
-    print("\n" + "="*50 + "\n")
-    run_deutsch_jozsa_examples()
